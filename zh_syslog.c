@@ -15,8 +15,8 @@ static const char *TAG = "zh_syslog";
 
 static zh_syslog_init_config_t _init_config = {0};
 static struct sockaddr_in _syslog_server = {0};
-static int _socket = 0;
-static bool _is_initialized = false;
+volatile static int _socket = 0;
+volatile static bool _is_initialized = false;
 
 esp_err_t zh_syslog_init(const zh_syslog_init_config_t *config)
 {
