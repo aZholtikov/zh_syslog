@@ -1,0 +1,8 @@
+description: ESP32 ESP-IDF component for Syslog UDP client
+url: https://github.com/aZholtikov/zh_syslog
+version: "1.0.0"
+license: "Apache-2.0"
+maintainers:
+  - "Alexey Zholtikov <alexey.zholtikov@yandex.ru>"
+dependencies:
+  idf: ">=5.0"
