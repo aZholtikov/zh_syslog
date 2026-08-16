@@ -24,12 +24,12 @@ The library enables ESP32 devices to send structured log messages to a remote sy
 
 ## Features
 
-- **RFC 5424 Compliance**: Messages are formatted according to the RFC 5424 syslog standard
-- **Standard Facility Codes**: Support for all 24 standard syslog facility codes (KERN, USER, DAEMON, LOCAL0-LOCAL7, etc.)
-- **Severity Levels**: Support for all 8 standard syslog severity levels (EMERG, ALERT, CRIT, ERR, WARNING, NOTICE, INFO, DEBUG)
-- **UDP Transport**: Uses datagram sockets for efficient log transmission
-- **DMA-Compatible Memory**: Utilizes MALLOC_CAP_8BIT allocations for potential DMA usage
-- **Structured Logging**: Includes hostname, app name, and message fields per RFC 5424
+1. **RFC 5424 Compliance**: Messages are formatted according to the RFC 5424 syslog standard
+2. **Standard Facility Codes**: Support for all 24 standard syslog facility codes (KERN, USER, DAEMON, LOCAL0-LOCAL7, etc.)
+3. **Severity Levels**: Support for all 8 standard syslog severity levels (EMERG, ALERT, CRIT, ERR, WARNING, NOTICE, INFO, DEBUG)
+4. **UDP Transport**: Uses datagram sockets for efficient log transmission
+5. **DMA-Compatible Memory**: Utilizes MALLOC_CAP_8BIT allocations for potential DMA usage
+6. **Structured Logging**: Includes hostname, app name, and message fields per RFC 5424
 
 ---
 
@@ -206,7 +206,6 @@ void app_main(void)
     // Initialize configuration with defaults
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
     strcpy(config.syslog_ip, "192.168.1.100");  // Set syslog server IP
-
     // Initialize syslog client
     esp_err_t ret = zh_syslog_init(&config);
     if (ret != ESP_OK)
@@ -214,16 +213,12 @@ void app_main(void)
         printf("Syslog initialization failed: %s\n", esp_err_to_name(ret));
         return;
     }
-
     // Send informational message
     zh_syslog_send(ZH_USER, ZH_INFO, "my_device", "my_app", "Application started");
-
     // Send warning message
     zh_syslog_send(ZH_USER, ZH_WARNING, "my_device", "my_app", "Low battery");
-
     // Send error message
     zh_syslog_send(ZH_KERN, ZH_ERR, "my_device", "kernel", "Disk read error");
-
     // Deinitialize when done
     zh_syslog_deinit();
 }
@@ -258,31 +253,25 @@ void app_main(void)
     esp_netif_init();
     esp_event_loop_create_default();
     esp_netif_create_default_wifi_sta();
-
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&cfg);
-
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = WIFI_SSID,
             .password = WIFI_PASS,
         },
     };
-
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL);
     esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, NULL);
     esp_wifi_start();
-
     s_event_group = xEventGroupCreate();
     xEventGroupWaitBits(s_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-
     // Initialize syslog after Wi-Fi connection
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
     strcpy(config.syslog_ip, "192.168.1.100");
     zh_syslog_init(&config);
-
     // Send periodic log messages
     for (int i = 0; i < 10; i++) {
         char msg[64];
@@ -290,7 +279,6 @@ void app_main(void)
         zh_syslog_send(ZH_USER, ZH_INFO, "esp32_sensor", "logger", msg);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-
     zh_syslog_deinit();
 }
 
@@ -316,19 +304,14 @@ void app_main(void)
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
     strcpy(config.syslog_ip, "192.168.1.100");
     zh_syslog_init(&config);
-
     // Kernel critical error
     zh_syslog_send(ZH_KERN, ZH_CRIT, "esp32", "kernel", "Out of memory");
-
     // User application warning
     zh_syslog_send(ZH_USER, ZH_WARNING, "esp32", "app", "Sensor reading timeout");
-
     // Auth subsystem notice
     zh_syslog_send(ZH_AUTH, ZH_NOTICE, "esp32", "auth", "User login successful");
-
     // Local facility for custom logging
     zh_syslog_send(ZH_LOCAL0, ZH_DEBUG, "esp32", "debugger", "Variable state: 0x1234");
-
     zh_syslog_deinit();
 }
 ```
@@ -401,8 +384,8 @@ limitations under the License.
 
 ## Additional Notes
 
-- **UDP Reliability**: This library uses UDP which does not guarantee message delivery. For reliable delivery, implement application-level acknowledgment.
-- **Performance**: O(n) for message formatting (n = message length). Send operation is blocking.
+- **UDP Reliability**: This library uses UDP which does not guarantee message delivery. For reliable delivery, implement application-level acknowledgment
+- **Performance**: O(n) for message formatting (n = message length). Send operation is blocking
 - **Best Practices**:
   - Always check return values from zh_syslog_init() and zh_syslog_send()
   - Call zh_syslog_deinit() before application exit or module unload

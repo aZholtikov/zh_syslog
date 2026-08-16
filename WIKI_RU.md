@@ -24,12 +24,12 @@
 
 ## Возможности
 
-- **Соответствие RFC 5424**: Сообщения форматируются в соответствии со стандартом syslog RFC 5424
-- **Стандартные коды Facility**: Поддержка всех 24 стандартных кодов facility syslog (KERN, USER, DAEMON, LOCAL0-LOCAL7 и т.д.)
-- **Уровни важности**: Поддержка всех 8 стандартных уровней severity syslog (EMERG, ALERT, CRIT, ERR, WARNING, NOTICE, INFO, DEBUG)
-- **UDP транспорт**: Использует дейтаграммные сокеты для эффективной передачи журналов
-- **Память совместимая с DMA**: Использует выделения MALLOC_CAP_8BIT для потенциального использования DMA
-- **Структурированное логирование**: Включает поля hostname, app name и message в соответствии с RFC 5424
+1. **Соответствие RFC 5424**: Сообщения форматируются в соответствии со стандартом syslog RFC 5424
+2. **Стандартные коды Facility**: Поддержка всех 24 стандартных кодов facility syslog (KERN, USER, DAEMON, LOCAL0-LOCAL7 и т.д.)
+3. **Уровни важности**: Поддержка всех 8 стандартных уровней severity syslog (EMERG, ALERT, CRIT, ERR, WARNING, NOTICE, INFO, DEBUG)
+4. **UDP транспорт**: Использует дейтаграммные сокеты для эффективной передачи журналов
+5. **Память совместимая с DMA**: Использует выделения MALLOC_CAP_8BIT для потенциального использования DMA
+6. **Структурированное логирование**: Включает поля hostname, app name и message в соответствии с RFC 5424
 
 ---
 
@@ -206,7 +206,6 @@ void app_main(void)
     // Инициализация конфигурации со значениями по умолчанию
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
     strcpy(config.syslog_ip, "192.168.1.100"); // IP syslog сервера
-
     // Инициализация syslog клиента
     esp_err_t ret = zh_syslog_init(&config);
     if (ret != ESP_OK)
@@ -214,16 +213,12 @@ void app_main(void)
         printf("Ошибка инициализации syslog: %s\n", esp_err_to_name(ret));
         return;
     }
-
     // Отправка информационного сообщения
     zh_syslog_send(ZH_USER, ZH_INFO, "my_device", "my_app", "Приложение запущено");
-
     // Отправка предупреждения
     zh_syslog_send(ZH_USER, ZH_WARNING, "my_device", "my_app", "Низкий заряд батареи");
-
     // Отправка сообщения об ошибке
     zh_syslog_send(ZH_KERN, ZH_ERR, "my_device", "kernel", "Ошибка чтения диска");
-
     // Деинициализация при завершении
     zh_syslog_deinit();
 }
@@ -258,31 +253,25 @@ void app_main(void)
     esp_netif_init();
     esp_event_loop_create_default();
     esp_netif_create_default_wifi_sta();
-
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     esp_wifi_init(&cfg);
-
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = WIFI_SSID,
             .password = WIFI_PASS,
         },
     };
-
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL);
     esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, NULL);
     esp_wifi_start();
-
     s_event_group = xEventGroupCreate();
     xEventGroupWaitBits(s_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-
     // Инициализация syslog после подключения Wi-Fi
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
     strcpy(config.syslog_ip, "192.168.1.100");
     zh_syslog_init(&config);
-
     // Периодическая отправка журнальных сообщений
     for (int i = 0; i < 10; i++) {
         char msg[64];
@@ -290,7 +279,6 @@ void app_main(void)
         zh_syslog_send(ZH_USER, ZH_INFO, "esp32_sensor", "logger", msg);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-
     zh_syslog_deinit();
 }
 
@@ -316,19 +304,14 @@ void app_main(void)
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
     strcpy(config.syslog_ip, "192.168.1.100");
     zh_syslog_init(&config);
-
     // Критическая ошибка ядра
     zh_syslog_send(ZH_KERN, ZH_CRIT, "esp32", "kernel", "Недостаточно памяти");
-
     // Предупреждение пользовательского приложения
     zh_syslog_send(ZH_USER, ZH_WARNING, "esp32", "app", "Таймаут чтения сенсора");
-
     // Уведомление подсистемы аутентификации
     zh_syslog_send(ZH_AUTH, ZH_NOTICE, "esp32", "auth", "Пользователь успешно вошёл");
-
     // Локальный facility для пользовательского логирования
     zh_syslog_send(ZH_LOCAL0, ZH_DEBUG, "esp32", "debugger", "Состояние переменной: 0x1234");
-
     zh_syslog_deinit();
 }
 ```
@@ -401,8 +384,8 @@ void app_main(void)
 
 ## Дополнительные заметки
 
-- **Надёжность UDP**: Эта библиотека использует UDP, который не гарантирует доставку сообщений. Для надёжной доставки реализуйте приложение-уровень подтверждения.
-- **Производительность**: O(n) для форматирования сообщения (n = длина сообщения). Операция отправки блокирующая.
+- **Надёжность UDP**: Эта библиотека использует UDP, который не гарантирует доставку сообщений. Для надёжной доставки реализуйте приложение-уровень подтверждения
+- **Производительность**: O(n) для форматирования сообщения (n = длина сообщения). Операция отправки блокирующая
 - **Лучшие практики**:
   - Всегда проверяйте возвращаемые значения от zh_syslog_init() и zh_syslog_send()
   - Вызывайте zh_syslog_deinit() перед выходом из приложения или выгрузкой модуля
