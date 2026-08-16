@@ -26,7 +26,7 @@ In an existing project, run the following command to install the components:
 
 ```text
 cd ../your_project/components
-git clone https://github.com/aZholtikov/zh_syslog.git
+git clone https://github.com/aZholtikov/zh_syslog
 ```
 
 In the application, add the component:
