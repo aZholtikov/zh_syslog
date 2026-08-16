@@ -116,7 +116,7 @@ extern "C"
      * Creates a UDP socket and configures connection parameters
      * for the remote syslog server.
      *
-     * @param[in] config Pointer to syslog client initialization configuration structure. Can point to a temporary variable
+     * @param[in] config Pointer to syslog client initialization configuration structure. Can point to a temporary variable (must not be NULL)
      *
      * @return ESP_OK on success
      * @return ESP_ERR_INVALID_ARG if config is NULL
@@ -147,9 +147,9 @@ extern "C"
      *
      * @param[in] facility Syslog facility code (0-23)
      * @param[in] severity Syslog severity code (0-7)
-     * @param[in] hostname Pointer to device hostname that generated the message. Only alphanumeric characters without spaces
-     * @param[in] app_name Pointer to application name that generated the message. Only alphanumeric characters without spaces
-     * @param[in] message Pointer to the message payload to send
+     * @param[in] hostname Pointer to device hostname that generated the message. Only alphanumeric characters without spaces (must not be NULL)
+     * @param[in] app_name Pointer to application name that generated the message. Only alphanumeric characters without spaces (must not be NULL)
+     * @param[in] message Pointer to the message payload to send (must not be NULL)
      *
      * @return ESP_OK on success
      * @return ESP_ERR_INVALID_ARG if hostname, app_name, or message is NULL

@@ -127,7 +127,7 @@ Initializes the syslog client by creating a UDP socket and configuring the desti
 
 **Parameters:**
 
-- `config` - Pointer to `zh_syslog_init_config_t` with syslog server address and port. Can point to a temporary variable.
+- `config` - Pointer to `zh_syslog_init_config_t` with syslog server address and port. Can point to a temporary variable. Must not be NULL
 
 **Returns:**
 
