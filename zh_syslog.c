@@ -13,10 +13,10 @@
 
 static const char *TAG = "zh_syslog";
 
-static zh_syslog_init_config_t _init_config = {0};
-static struct sockaddr_in _syslog_server = {0};
-volatile static int _socket = 0;
-volatile static bool _is_initialized = false;
+static zh_syslog_init_config_t _init_config = {0}; /*!< Syslog client initialization configuration (internal copy) */
+static struct sockaddr_in _syslog_server = {0};    /*!< Pre-configured syslog server address */
+volatile static int _socket = 0;                   /*!< UDP socket file descriptor */
+volatile static bool _is_initialized = false;      /*!< Initialization status flag */
 
 esp_err_t zh_syslog_init(const zh_syslog_init_config_t *config)
 {
