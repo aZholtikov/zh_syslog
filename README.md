@@ -14,11 +14,11 @@
 
 ## Features
 
-1. Support for all standard syslog facility codes (0-23) per RFC 5424
-2. Support for all standard syslog severity levels (0-7) per RFC 5424
-3. RFC 5424 format message generation with priority calculation
-4. Thread-safe initialization and deinitialization
-5. MALLOC_CAP_8BIT memory allocation for DMA compatibility
+1. Support for all standard syslog facility codes (0-23) per RFC 5424.
+2. Support for all standard syslog severity levels (0-7) per RFC 5424.
+3. RFC 5424 format message generation with priority calculation.
+4. Thread-safe initialization and deinitialization.
+5. MALLOC_CAP_8BIT memory allocation for DMA compatibility.
 
 ## Using
 
