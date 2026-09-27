@@ -53,7 +53,7 @@ esp_err_t zh_syslog_send(const zh_syslog_facility_code_t facility, const zh_sysl
     ZH_ERROR_CHECK(payload != NULL, ESP_ERR_NO_MEM, NULL, "Syslog client send fail. Memory allocation fail or no free memory in the heap.");
     sprintf(payload, "<%d>1 - %s %s - - - %s", ((uint8_t)facility * 8) + (uint8_t)severity, hostname, app_name, message);
     int temp = sendto(_socket, payload, strlen(payload), 0, (struct sockaddr *)&_syslog_server, sizeof(_syslog_server)); // -V641
-    ZH_ERROR_CHECK(temp >= 0, ESP_FAIL, heap_caps_free(payload), "Syslog client send fail. Socker error.");
+    ZH_ERROR_CHECK(temp >= 0, ESP_FAIL, heap_caps_free(payload), "Syslog client send fail. Socket error.");
     heap_caps_free(payload);
     ESP_LOGI(TAG, "Syslog client send success.");
     return ESP_OK;

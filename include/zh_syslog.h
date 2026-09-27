@@ -123,7 +123,7 @@ extern "C"
      * @return ESP_FAIL if socket creation fails
      *
      * @note Connection to the network must be established before calling this function.
-     * @note Before initialize the syslog client recommend initialize zh_syslog_init_config_t structure with default values.
+     * @note Before initializing the syslog client, it is recommended to initialize the zh_syslog_init_config_t structure with default values.
      */
     esp_err_t zh_syslog_init(const zh_syslog_init_config_t *config);
 
