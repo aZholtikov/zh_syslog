@@ -1,5 +1,7 @@
 #include "zh_syslog.h"
 
+static const char *TAG = "zh_syslog";
+
 #define ZH_LOGI(msg, ...) ESP_LOGI(TAG, msg, ##__VA_ARGS__)
 #define ZH_LOGE(msg, err, ...) ESP_LOGE(TAG, "[%s:%d:%s] " msg, __FILE__, __LINE__, esp_err_to_name(err), ##__VA_ARGS__)
 
@@ -10,8 +12,6 @@
         cleanup;                                     \
         return err;                                  \
     }
-
-static const char *TAG = "zh_syslog";
 
 static struct sockaddr_in _syslog_server = {0};
 volatile static int _socket = -1;
