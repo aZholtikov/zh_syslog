@@ -10,8 +10,8 @@
  * - Support for all standard syslog facility codes (0-23)
  * - Support for all standard syslog severity levels (0-7)
  * - RFC 5424 format message generation
- * - Thread-safe initialization and deinitialization
- * - MALLOC_CAP_8BIT memory allocation for DMA compatibility
+ * - Short messages are formatted into a stack buffer, longer ones fall back
+ *   to a heap allocation with the exact required size
  *
  * @note Connection to the network must be established before calling zh_syslog_init().
  * @warning This library does not guarantee message delivery (UDP is connectionless).
@@ -19,17 +19,15 @@
 
 #pragma once
 
+#include "stdio.h"
+#include "string.h"
+#include "stdint.h"
 #include "stdbool.h"
+#include "esp_heap_caps.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "lwip/err.h"
 #include "lwip/sockets.h"
-#include "lwip/sys.h"
-#include "lwip/netdb.h"
 
-/**
- * @brief Default syslog client initialization configuration.
- */
 #define ZH_SYSLOG_INIT_CONFIG_DEFAULT() \
     {                                   \
         .syslog_ip = "192.168.0.1",     \
@@ -116,10 +114,11 @@ extern "C"
      * Creates a UDP socket and configures connection parameters
      * for the remote syslog server.
      *
-     * @param[in] config Pointer to syslog client initialization configuration structure. Can point to a temporary variable (must not be NULL)
+     * @param[in] config Pointer to syslog client initialization configuration structure (must not be NULL)
      *
      * @return ESP_OK on success
-     * @return ESP_ERR_INVALID_ARG if config is NULL
+     * @return ESP_ERR_INVALID_ARG if any parameter is NULL, port is out of range, or IP is malformed
+     * @return ESP_ERR_INVALID_STATE if client is already initialized
      * @return ESP_FAIL if socket creation fails
      *
      * @note Connection to the network must be established before calling this function.
@@ -147,12 +146,12 @@ extern "C"
      *
      * @param[in] facility Syslog facility code (0-23)
      * @param[in] severity Syslog severity code (0-7)
-     * @param[in] hostname Pointer to device hostname that generated the message. Only alphanumeric characters without spaces (must not be NULL)
-     * @param[in] app_name Pointer to application name that generated the message. Only alphanumeric characters without spaces (must not be NULL)
+     * @param[in] hostname Pointer to device hostname that generated the message (must not be NULL)
+     * @param[in] app_name Pointer to application name that generated the message (must not be NULL)
      * @param[in] message Pointer to the message payload to send (must not be NULL)
      *
      * @return ESP_OK on success
-     * @return ESP_ERR_INVALID_ARG if hostname, app_name, or message is NULL
+     * @return ESP_ERR_INVALID_ARG if hostname, app_name, or message is NULL, or facility/severity is out of range
      * @return ESP_ERR_INVALID_STATE if zh_syslog_init() was not called previously
      * @return ESP_ERR_NO_MEM if memory allocation fails
      * @return ESP_FAIL if UDP send operation fails

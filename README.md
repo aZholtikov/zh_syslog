@@ -1,9 +1,5 @@
 # ESP32 ESP-IDF component for Syslog UDP client
 
-## SAST Tools
-
-[PVS-Studio](https://pvs-studio.com/pvs-studio/?utm_source=website&utm_medium=github&utm_campaign=open_source) — static analyzer for C, C++, C#, and Java code.
-
 ## Features
 
 1. Support for all standard syslog facility codes (0-23) per RFC 5424.
@@ -51,11 +47,11 @@ Messages are built using the format defined in [RFC 5424](https://datatracker.ie
 
 #define SYSLOG_IP "8.8.8.8"
 
-esp_timer_handle_t wifi_reconnect_timer = {0};
+esp_timer_handle_t wifi_reconnect_timer = NULL;
 uint8_t wifi_reconnect_retry_num = 0;
-EventGroupHandle_t event_group_handle = {0};
+EventGroupHandle_t event_group_handle = NULL;
 
-bool flag = false;
+volatile bool flag = false;
 
 void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
@@ -75,8 +71,8 @@ void app_main(void)
     esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL);
     esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, NULL);
-    esp_wifi_start();
     event_group_handle = xEventGroupCreate();
+    esp_wifi_start();
     xEventGroupWaitBits(event_group_handle, WIFI_CONNECT_SUCCESS, pdTRUE, pdTRUE, portMAX_DELAY);
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
     strcpy(config.syslog_ip, SYSLOG_IP);
@@ -121,6 +117,7 @@ void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id
             {
                 esp_timer_stop(wifi_reconnect_timer);
                 esp_timer_delete(wifi_reconnect_timer);
+                wifi_reconnect_timer = NULL;
             }
             esp_timer_create_args_t wifi_reconnect_timer_args = {
                 .callback = (void *)esp_wifi_connect,
