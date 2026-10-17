@@ -1,4 +1,4 @@
-# ESP32 ESP-IDF component for Syslog UDP client
+# ESP32 ESP-IDF component for syslog (UDP client)
 
 ## Features
 
@@ -6,11 +6,18 @@
 2. Support for all standard syslog severity levels (0-7) per RFC 5424.
 3. RFC 5424 format message generation with priority calculation.
 4. Thread-safe initialization and deinitialization.
-5. MALLOC_CAP_8BIT memory allocation for DMA compatibility.
+5. Memory allocation with MALLOC_CAP_8BIT for DMA compatibility.
+6. Short messages use stack buffer, longer ones fall back to heap allocation.
+
+## Attention
+
+1. Network connection must be established before calling zh_syslog_init.
+2. UDP is connectionless and message delivery is not guaranteed.
+3. zh_syslog_send is not thread-safe, caller must ensure mutual exclusion.
 
 ## Using
 
-In an existing project, run the following command to install the components:
+In an existing project, run the following command to install the component:
 
 ```bash
 cd ../your_project/components
@@ -23,122 +30,146 @@ In the application, add the component:
 #include "zh_syslog.h"
 ```
 
-## Note
+## Examples
 
-Messages are built using the format defined in [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424).
-
-## Example
+### Basic Example
 
 ```c
-#include "nvs_flash.h"
-#include "esp_netif.h"
-#include "esp_wifi.h"
-#include "esp_timer.h"
-#include "esp_event.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
 #include "zh_syslog.h"
-
-#define WIFI_SSID "SSID"
-#define WIFI_PASS "password"
-#define WIFI_MAXIMUM_RETRY 5
-#define WIFI_RECONNECT_TIME 5
-#define WIFI_CONNECT_SUCCESS BIT0
-
-#define SYSLOG_IP "8.8.8.8"
-
-esp_timer_handle_t wifi_reconnect_timer = NULL;
-uint8_t wifi_reconnect_retry_num = 0;
-EventGroupHandle_t event_group_handle = NULL;
-
-volatile bool flag = false;
-
-void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
 void app_main(void)
 {
     esp_log_level_set("zh_syslog", ESP_LOG_ERROR);
-    nvs_flash_init();
-    esp_netif_init();
-    esp_event_loop_create_default();
-    esp_netif_create_default_wifi_sta();
-    wifi_init_config_t wifi_init_sta_config = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&wifi_init_sta_config);
-    wifi_config_t wifi_config = {
-        .sta.ssid = WIFI_SSID,
-        .sta.password = WIFI_PASS};
-    esp_wifi_set_mode(WIFI_MODE_STA);
-    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-    esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL);
-    esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, NULL);
-    event_group_handle = xEventGroupCreate();
-    esp_wifi_start();
-    xEventGroupWaitBits(event_group_handle, WIFI_CONNECT_SUCCESS, pdTRUE, pdTRUE, portMAX_DELAY);
     zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
-    strcpy(config.syslog_ip, SYSLOG_IP);
-    zh_syslog_init(&config);
-    for (;;)
+    strcpy(config.syslog_ip, "192.168.1.100");
+    esp_err_t ret = zh_syslog_init(&config);
+    if (ret != ESP_OK)
     {
-        if (flag == true)
-        {
-            zh_syslog_send(ZH_USER, ZH_INFO, "my_device", "my_application", "Message");
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-            zh_syslog_send(ZH_USER, ZH_CRIT, "my_device", "my_application", "Message");
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-            zh_syslog_send(ZH_KERN, ZH_ERR, "my_device", "my_application", "Message");
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-            zh_syslog_send(ZH_KERN, ZH_WARNING, "my_device", "my_application", "Message");
-        }
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        printf("Syslog initialization error\n");
+        return;
     }
-}
-
-void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
-{
-    switch (event_id)
+    ret = zh_syslog_send(ZH_USER, ZH_INFO, "my_device", "my_app", "Hello Syslog");
+    if (ret == ESP_OK)
     {
-    case WIFI_EVENT_STA_START:
-        esp_wifi_connect();
-        break;
-    case WIFI_EVENT_STA_DISCONNECTED:
-        if (flag == true)
-        {
-            flag = false;
-        }
-        if (wifi_reconnect_retry_num < WIFI_MAXIMUM_RETRY)
-        {
-            esp_wifi_connect();
-            ++wifi_reconnect_retry_num;
-        }
-        else
-        {
-            wifi_reconnect_retry_num = 0;
-            if (wifi_reconnect_timer != NULL)
-            {
-                esp_timer_stop(wifi_reconnect_timer);
-                esp_timer_delete(wifi_reconnect_timer);
-                wifi_reconnect_timer = NULL;
-            }
-            esp_timer_create_args_t wifi_reconnect_timer_args = {
-                .callback = (void *)esp_wifi_connect,
-                .name = "wifi_reconnect"};
-            esp_timer_create(&wifi_reconnect_timer_args, &wifi_reconnect_timer);
-            esp_timer_start_once(wifi_reconnect_timer, WIFI_RECONNECT_TIME * 1000);
-        }
-        break;
-    case IP_EVENT_STA_GOT_IP:
-        flag = true;
-        wifi_reconnect_retry_num = 0;
-        if (wifi_reconnect_timer != NULL)
-        {
-            esp_timer_stop(wifi_reconnect_timer);
-            esp_timer_delete(wifi_reconnect_timer);
-            wifi_reconnect_timer = NULL;
-        }
-        xEventGroupSetBits(event_group_handle, WIFI_CONNECT_SUCCESS);
-        break;
-    default:
-        break;
+        printf("Message sent\n");
+    }
+    else
+    {
+        printf("Send error: %s\n", esp_err_to_name(ret));
+    }
+    zh_syslog_deinit();
+}
+```
+
+---
+
+### Facility and Severity Example
+
+```c
+#include "zh_syslog.h"
+
+void app_main(void)
+{
+    esp_log_level_set("zh_syslog", ESP_LOG_ERROR);
+    zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
+    strcpy(config.syslog_ip, "192.168.1.100");
+    esp_err_t ret = zh_syslog_init(&config);
+    if (ret != ESP_OK)
+    {
+        printf("Syslog initialization error\n");
+        return;
+    }
+    ret = zh_syslog_send(ZH_KERN, ZH_ERR, "my_device", "my_app", "Kernel error");
+    if (ret == ESP_OK)
+    {
+        printf("Kernel error sent\n");
+    }
+    else
+    {
+        printf("Send error: %s\n", esp_err_to_name(ret));
+    }
+    ret = zh_syslog_send(ZH_USER, ZH_WARNING, "my_device", "my_app", "User warning");
+    if (ret == ESP_OK)
+    {
+        printf("User warning sent\n");
+    }
+    else
+    {
+        printf("Send error: %s\n", esp_err_to_name(ret));
+    }
+    zh_syslog_deinit();
+}
+```
+
+---
+
+### Long Message Example
+
+```c
+#include "zh_syslog.h"
+
+void app_main(void)
+{
+    esp_log_level_set("zh_syslog", ESP_LOG_ERROR);
+    zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
+    strcpy(config.syslog_ip, "192.168.1.100");
+    esp_err_t ret = zh_syslog_init(&config);
+    if (ret != ESP_OK)
+    {
+        printf("Syslog initialization error\n");
+        return;
+    }
+    char long_message[512];
+    memset(long_message, 'A', sizeof(long_message) - 1);
+    long_message[sizeof(long_message) - 1] = '\0';
+    ret = zh_syslog_send(ZH_USER, ZH_INFO, "my_device", "my_app", long_message);
+    if (ret == ESP_OK)
+    {
+        printf("Long message sent\n");
+    }
+    else
+    {
+        printf("Send error: %s\n", esp_err_to_name(ret));
+    }
+    zh_syslog_deinit();
+}
+```
+
+---
+
+### Deinitialization Example
+
+```c
+#include "zh_syslog.h"
+
+void app_main(void)
+{
+    esp_log_level_set("zh_syslog", ESP_LOG_ERROR);
+    zh_syslog_init_config_t config = ZH_SYSLOG_INIT_CONFIG_DEFAULT();
+    strcpy(config.syslog_ip, "192.168.1.100");
+    esp_err_t ret = zh_syslog_init(&config);
+    if (ret != ESP_OK)
+    {
+        printf("Syslog initialization error\n");
+        return;
+    }
+    ret = zh_syslog_send(ZH_USER, ZH_DEBUG, "my_device", "my_app", "Debug message");
+    if (ret == ESP_OK)
+    {
+        printf("Message sent\n");
+    }
+    else
+    {
+        printf("Send error: %s\n", esp_err_to_name(ret));
+    }
+    ret = zh_syslog_deinit();
+    if (ret == ESP_OK)
+    {
+        printf("Syslog deinitialized\n");
+    }
+    else
+    {
+        printf("Deinit error: %s\n", esp_err_to_name(ret));
     }
 }
 ```
